@@ -5,6 +5,53 @@ namespace KioskLauncher;
 
 public sealed class BrowserForm : Form
 {
+    // 禁用 B 站列表页的 hover 预览；视频播放页不受影响。
+    private const string DisableBiliHoverPreviewScript = """
+        (function () {
+          'use strict';
+          function init() {
+            var host = location.hostname || '';
+            var path = location.pathname || '';
+            if (!/(^|\.)bilibili\.com$/.test(host)) return;
+            if (/^\/video\//.test(path)) return;
+
+            function stop(v) {
+              try { v.pause(); v.currentTime = 0; } catch (e) {}
+              try { v.removeAttribute('src'); v.load(); } catch (e) {}
+            }
+
+            var nativePlay = HTMLMediaElement.prototype.play;
+            HTMLMediaElement.prototype.play = function () {
+              var result = nativePlay.apply(this, arguments);
+              try { this.pause(); } catch (e) {}
+              return result;
+            };
+
+            var style = document.createElement('style');
+            style.textContent = 'video { display: none !important; }';
+            (document.head || document.documentElement).appendChild(style);
+
+            var observer = new MutationObserver(function (records) {
+              for (var i = 0; i < records.length; i++) {
+                var added = records[i].addedNodes;
+                for (var j = 0; j < added.length; j++) {
+                  var node = added[j];
+                  if (node.nodeType !== 1) continue;
+                  if (node.tagName === 'VIDEO') stop(node);
+                  if (node.querySelectorAll) {
+                    var videos = node.querySelectorAll('video');
+                    for (var k = 0; k < videos.length; k++) stop(videos[k]);
+                  }
+                }
+              }
+            });
+            observer.observe(document, { childList: true, subtree: true });
+          }
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+          else init();
+        })();
+        """;
+
     private readonly BrowserPolicyStore _policyStore;
     private readonly string _startUrl;
     private readonly Action<string> _log;
@@ -93,6 +140,7 @@ public sealed class BrowserForm : Form
             await web.EnsureCoreWebView2Async(_env);
             web.CoreWebView2.Settings.AreDevToolsEnabled = false;
             web.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            await web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(DisableBiliHoverPreviewScript);
             web.CoreWebView2.NavigationStarting += (_, args) =>
             {
                 var referer = tab.CurrentUrl;
