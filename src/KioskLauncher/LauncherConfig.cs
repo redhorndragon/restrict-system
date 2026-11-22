@@ -5,9 +5,8 @@ namespace KioskLauncher;
 public class LauncherConfig
 {
     public string StartUrl { get; set; } = string.Empty;
-    public string EdgePath { get; set; } = string.Empty;
     public string SharedConfigPath { get; set; } = @"C:\ProgramData\KioskGuard\config.json";
-    public int RestartDelayMs { get; set; } = 1500;
+    public string BrowserPolicyPath { get; set; } = @"C:\ProgramData\KioskGuard\browser-policy.json";
 
     public static LauncherConfig Load()
     {

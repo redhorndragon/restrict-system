@@ -13,6 +13,7 @@ public sealed class AllowlistSource
     private readonly BilibiliUpResolver _bilibiliResolver;
     private readonly HttpClient _http;
     private readonly HashSet<string> _current = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _upIds = new(StringComparer.OrdinalIgnoreCase);
     private Allowlist? _cache;
 
     public AllowlistSource(ConfigStore store, ILogger<AllowlistSource> logger, BilibiliUpResolver bilibiliResolver)
@@ -26,9 +27,14 @@ public sealed class AllowlistSource
         {
             foreach (var url in _cache.Urls) _current.Add(url);
         }
+        if (_cache?.BilibiliUpIds != null)
+        {
+            foreach (var id in _cache.BilibiliUpIds) _upIds.Add(id);
+        }
     }
 
     public IReadOnlyCollection<string> Current => _current;
+    public IReadOnlyCollection<string> BilibiliUpIds => _upIds;
 
     public async Task<IReadOnlyCollection<string>> RefreshAsync(CancellationToken ct)
     {
@@ -53,6 +59,9 @@ public sealed class AllowlistSource
             _current.Clear();
             foreach (var url in rules.Urls) _current.Add(url);
 
+            _upIds.Clear();
+            foreach (var id in rules.BilibiliUpIds) _upIds.Add(id);
+
             if (rules.BilibiliUpIds.Count > 0)
             {
                 var bilibiliUrls = await _bilibiliResolver.ResolveAsync(rules.BilibiliUpIds, ct);
@@ -75,6 +84,7 @@ public sealed class AllowlistSource
                 FetchedAt = DateTimeOffset.UtcNow,
                 SourceUrl = config.GitHubPagesUrl,
                 Urls = _current.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
+                BilibiliUpIds = _upIds.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
             };
             _cache.Save(config.CachePath);
 

@@ -7,11 +7,11 @@
   "ProcessScanIntervalMs": 500,
   "CachePath": "C:\\ProgramData\\KioskGuard\\allowlist.json",
   "SharedConfigPath": "C:\\ProgramData\\KioskGuard\\config.json",
+  "BrowserPolicyPath": "C:\\ProgramData\\KioskGuard\\browser-policy.json",
   "ManifestScriptId": "kiosk-allowlist",
   "AllowlistContainerId": "kiosk-allowlist",
   "ExtraAllowedUrls": [],
   "AllowedProcessNames": [
-    "msedge.exe",
     "msedgewebview2.exe",
     "KioskLauncher.exe",
     "conhost.exe",

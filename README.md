@@ -1,11 +1,11 @@
 # RestrictSystem — Windows 家庭版严格 Kiosk 访问限制
 
-面向 Windows 10/11 家庭版的网站访问限制软件。管理员一次性配置后，指定标准用户登录时进入受控环境：无桌面/任务栏，仅 Edge 最大化窗口运行，保留前进/后退/主页按钮且网站登录状态可保持（非 InPrivate），只能访问从 GitHub Pages 页面解析出的白名单链接。
+面向 Windows 10/11 家庭版的网站访问限制软件。管理员一次性配置后，指定标准用户登录时进入受控环境：无桌面/任务栏，仅自研 WebView2 浏览器全屏运行，多标签、只读地址栏、前进/后退/主页按钮，网站登录状态可保持（非 InPrivate），只能访问从 GitHub Pages 页面解析出的白名单链接。URL 限制由浏览器自身执行，不再依赖 Edge 注册表策略。
 
 ## 组件
 
-- `KioskGuard.Service`：以 LocalSystem 运行的 Windows 服务，负责抓取白名单、下发策略、守护进程，并热加载配置。
-- `KioskLauncher`：目标用户的自定义 Winlogon Shell，提供全屏宿主窗口、Edge 看护与热键屏蔽。
+- `KioskGuard.Service`：以 LocalSystem 运行的 Windows 服务，负责抓取白名单、生成浏览器策略文件、守护进程，并热加载配置。
+- `KioskLauncher`：目标用户的自定义 Winlogon Shell，是基于 WebView2 的多标签浏览器，执行 URL 白名单拦截与热键屏蔽。
 - `KioskSetup`：管理员一次性配置工具，设置 Shell、写配置、安装服务。
 - `KioskAdmin`：管理员图形界面，修改白名单源（GitHub Pages 地址、起始页、刷新周期），并可增删"额外允许的网址"（与 GitHub Pages 白名单合并），保存后秒级生效。强制 UAC 提权，仅管理员可运行。
 - `KioskGuard.Config`：配置模型与文件读写共享库。
@@ -30,13 +30,13 @@
 
 ### 浏览器运行方式
 
-KioskLauncher 以普通最大化窗口（非 Edge kiosk/InPrivate）启动 Edge，这样可以保留网站登录状态并显示前进/后退/主页按钮。限制由以下机制共同实现：
+KioskLauncher 是基于 WebView2 的多标签浏览器，使用独立持久化 profile，网站登录状态可保持；地址栏只读，提供前进/后退/主页/刷新/新建标签按钮。限制由以下机制共同实现：
 
-- Edge 策略：`URLBlocklist=*`、`URLAllowlist`（白名单网址）、`AddressBarIsReadOnly=1`（地址栏只读）、`IncognitoModeAvailability=2`（禁用 InPrivate）、`ShowHomeButton=1`、`DeveloperToolsAvailability=2`
-- KioskLauncher：屏蔽 Win/Alt+Tab/Alt+F4/Ctrl+Esc 等热键；Edge 退出后约 2.5 秒自动重启
-- KioskGuard 服务：结束目标用户的非白名单进程，禁用任务管理器
+- KioskLauncher：在主框架导航与新窗口请求时按白名单拦截 URL；前缀匹配允许整站或具体路径；从白名单 B 站 UP 主空间页点击跳转的 `www.bilibili.com/video/...` 自动放行（来源链规则）；不下载任何 Edge 注册表策略。
+- KioskGuard 服务：抓取 GitHub Pages 白名单，合并起始页与「额外允许的网址」，写入 `C:\ProgramData\KioskGuard\browser-policy.json`（目标用户只读）；结束目标用户的非白名单进程。
+- 浏览器策略文件缺失或无效时降级为仅允许起始页（fail-closed），并在数秒内随服务刷新自动热更新。
 
-注意：用户仍可点击标签栏的关闭按钮或新建标签页；新标签页打开的是白名单起始页，访问非白名单网址会被阻止。关闭 Edge 后会被 watchdog 自动重启。
+注意：新标签页打开的是白名单起始页，访问非白名单网址会被直接取消（地址栏保持原网址）。WebView2 需要本机已安装 Edge WebView2 Runtime（通常随 Edge 预装）。
 
 详见 `docs/DEPLOYMENT.md`；安全边界见 `docs/LIMITATIONS.md`。
 

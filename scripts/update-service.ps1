@@ -19,6 +19,7 @@ Write-Host "Service stopped after ${waited}s"
 
 Write-Host '== Replacing service files =='
 Copy-Item (Join-Path $serviceSrc 'KioskGuard.Service.dll') $installDir -Force
+Copy-Item (Join-Path $serviceSrc 'KioskGuard.Config.dll') $installDir -Force
 
 Write-Host '== Restarting service =='
 & sc.exe start KioskGuard 2>$null | Out-Null

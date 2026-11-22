@@ -77,16 +77,16 @@ internal static class Program
             ProcessScanIntervalMs = 500,
             CachePath = Path.Combine(ProgramDataDir, "allowlist.json"),
             SharedConfigPath = Path.Combine(ProgramDataDir, "config.json"),
+            BrowserPolicyPath = Path.Combine(ProgramDataDir, "browser-policy.json"),
             options.ManifestScriptId,
             options.AllowlistContainerId,
             AllowedProcessNames = new[]
             {
-                "msedge.exe", "msedgewebview2.exe", "KioskLauncher.exe",
+                "msedgewebview2.exe", "KioskLauncher.exe",
                 "conhost.exe", "dllhost.exe", "RuntimeBroker.exe", "ctfmon.exe",
                 "sihost.exe", "TextInputHost.exe", "ApplicationFrameHost.exe",
                 "SearchHost.exe", "SearchApp.exe", "audiodg.exe", "fontdrvhost.exe",
             },
-            EdgePath = options.EdgePath,
         };
         var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(Path.Combine(ProgramDataDir, "config.json"), json);
@@ -94,9 +94,8 @@ internal static class Program
         var launcherConfig = new
         {
             options.StartUrl,
-            options.EdgePath,
             SharedConfigPath = Path.Combine(ProgramDataDir, "config.json"),
-            RestartDelayMs = 1500,
+            BrowserPolicyPath = Path.Combine(ProgramDataDir, "browser-policy.json"),
         };
         File.WriteAllText(Path.Combine(installDir, "launcher.json"),
             JsonSerializer.Serialize(launcherConfig, new JsonSerializerOptions { WriteIndented = true }));
@@ -218,7 +217,6 @@ internal static class Program
                 case "--refresh": int.TryParse(Next(args, ref i), out var refresh); options.RefreshIntervalMinutes = refresh > 0 ? refresh : 10; break;
                 case "--manifest-id": options.ManifestScriptId = Next(args, ref i); break;
                 case "--container-id": options.AllowlistContainerId = Next(args, ref i); break;
-                case "--edge": options.EdgePath = Next(args, ref i); break;
                 default: error = $"未知参数：{args[i]}"; return false;
             }
         }
@@ -240,13 +238,12 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("用法：KioskSetup --user <用户名> --github <GitHub Pages URL> [选项]");
-        Console.WriteLine("  --start <URL>              Edge 起始页（默认同 --github）");
+        Console.WriteLine("  --start <URL>              浏览器起始页（默认同 --github）");
         Console.WriteLine("  --launcher <path>          KioskLauncher.exe 完整路径");
         Console.WriteLine("  --service <path>           KioskGuard.Service.exe 完整路径");
         Console.WriteLine("  --refresh <分钟>           白名单刷新周期（默认 10）");
         Console.WriteLine("  --manifest-id <id>         JSON manifest script 的 id（默认 kiosk-allowlist）");
         Console.WriteLine("  --container-id <id>        链接容器元素 id（默认 kiosk-allowlist）");
-        Console.WriteLine("  --edge <path>              msedge.exe 路径（可选，自动探测）");
     }
 
     private sealed class Options
@@ -256,7 +253,6 @@ internal static class Program
         public string StartUrl { get; set; } = string.Empty;
         public string LauncherPath { get; set; } = string.Empty;
         public string ServicePath { get; set; } = string.Empty;
-        public string EdgePath { get; set; } = string.Empty;
         public int RefreshIntervalMinutes { get; set; } = 10;
         public string ManifestScriptId { get; set; } = "kiosk-allowlist";
         public string AllowlistContainerId { get; set; } = "kiosk-allowlist";

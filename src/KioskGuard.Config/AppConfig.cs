@@ -10,12 +10,12 @@ public class AppConfig
     public int ProcessScanIntervalMs { get; set; } = 500;
     public string CachePath { get; set; } = @"C:\ProgramData\KioskGuard\allowlist.json";
     public string SharedConfigPath { get; set; } = @"C:\ProgramData\KioskGuard\config.json";
+    public string BrowserPolicyPath { get; set; } = @"C:\ProgramData\KioskGuard\browser-policy.json";
     public string ManifestScriptId { get; set; } = "kiosk-allowlist";
     public string AllowlistContainerId { get; set; } = "kiosk-allowlist";
     public List<string> ExtraAllowedUrls { get; set; } = [];
     public List<string> AllowedProcessNames { get; set; } =
     [
-        "msedge.exe",
         "msedgewebview2.exe",
         "KioskLauncher.exe",
         "conhost.exe",

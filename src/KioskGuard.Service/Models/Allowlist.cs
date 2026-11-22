@@ -7,6 +7,7 @@ public class Allowlist
     public DateTimeOffset FetchedAt { get; set; }
     public string? SourceUrl { get; set; }
     public List<string> Urls { get; set; } = [];
+    public List<string> BilibiliUpIds { get; set; } = [];
 
     public static Allowlist? Load(string path)
     {

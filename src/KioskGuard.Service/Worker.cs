@@ -7,19 +7,19 @@ public class Worker : BackgroundService
     private readonly ILogger<Worker> _logger;
     private readonly ConfigStore _store;
     private readonly AllowlistSource _allowlistSource;
-    private readonly PolicyApplier _policyApplier;
+    private readonly BrowserPolicyWriter _browserPolicyWriter;
     private readonly ProcessGuard _processGuard;
     private readonly SemaphoreSlim _refreshGate;
     private readonly object _wakeLock = new();
     private TaskCompletionSource<bool>? _refreshWake;
 
     public Worker(ILogger<Worker> logger, ConfigStore store, AllowlistSource allowlistSource,
-        PolicyApplier policyApplier, ProcessGuard processGuard, SemaphoreSlim refreshGate)
+        BrowserPolicyWriter browserPolicyWriter, ProcessGuard processGuard, SemaphoreSlim refreshGate)
     {
         _logger = logger;
         _store = store;
         _allowlistSource = allowlistSource;
-        _policyApplier = policyApplier;
+        _browserPolicyWriter = browserPolicyWriter;
         _processGuard = processGuard;
         _refreshGate = refreshGate;
     }
@@ -54,7 +54,7 @@ public class Worker : BackgroundService
                 if (!_store.TryReloadIfChanged(out var config) || config == null) continue;
 
                 _logger.LogInformation("检测到配置变更，立即刷新白名单与策略。");
-                _policyApplier.Invalidate();
+                _browserPolicyWriter.Invalidate();
                 SignalRefreshCycle();
                 await RefreshCoreAsync(ct);
             }
@@ -93,7 +93,7 @@ public class Worker : BackgroundService
         try
         {
             var urls = await _allowlistSource.RefreshAsync(ct);
-            _policyApplier.Apply(urls);
+            _browserPolicyWriter.Write(urls, _allowlistSource.BilibiliUpIds);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
         finally
@@ -109,7 +109,7 @@ public class Worker : BackgroundService
         {
             while (await timer.WaitForNextTickAsync(ct))
             {
-                _policyApplier.Apply(_allowlistSource.Current);
+                _browserPolicyWriter.Write(_allowlistSource.Current, _allowlistSource.BilibiliUpIds);
             }
         }
         catch (OperationCanceledException) { }

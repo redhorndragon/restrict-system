@@ -6,7 +6,6 @@ param(
     [string]$ManifestScriptId = 'kiosk-allowlist',
     [string]$AllowlistContainerId = 'kiosk-allowlist',
     [int]$RefreshMinutes = 10,
-    [string]$EdgePath = '',
     [string]$InstallDir = 'C:\Program Files\KioskGuard'
 )
 
@@ -43,6 +42,11 @@ Write-Host '== Hardening ACLs =='
 & icacls $InstallDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
 & icacls $dataDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
 
+Write-Host '== Granting browser policy read access =='
+$accountName = if ($User -like '*\*' -or $User -like '*@*') { $User } else { "$env:COMPUTERNAME\$User" }
+$sid = ([System.Security.Principal.NTAccount]$accountName).Translate([System.Security.Principal.SecurityIdentifier]).Value
+& icacls $dataDir /grant "*$sid:(OI)(CI)RX" | Out-Null
+
 Write-Host '== Configuring target user and service =='
 $setupExe = Join-Path $InstallDir 'KioskSetup.exe'
 $launcherExe = Join-Path $InstallDir 'KioskLauncher.exe'
@@ -50,7 +54,6 @@ $serviceExe = Join-Path $InstallDir 'KioskGuard.Service.exe'
 
 $setupArgs = @('--user', $User, '--github', $GitHubPagesUrl, '--launcher', $launcherExe, '--service', $serviceExe, '--refresh', $RefreshMinutes, '--manifest-id', $ManifestScriptId, '--container-id', $AllowlistContainerId)
 if ($StartUrl) { $setupArgs += @('--start', $StartUrl) }
-if ($EdgePath) { $setupArgs += @('--edge', $EdgePath) }
 & $setupExe @setupArgs
 if ($LASTEXITCODE -ne 0) { throw 'KioskSetup failed' }
 

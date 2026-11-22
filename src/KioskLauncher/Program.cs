@@ -15,13 +15,11 @@ static class Program
         }
 
         var config = LauncherConfig.Load();
-        AppendLog($"启动：StartUrl={config.StartUrl}");
-        using var hook = new KeyboardHook();
-        using var form = new KioskForm();
-        using var edge = new EdgeController(config, msg => AppendLog(msg));
+        AppendLog($"启动：StartUrl={config.StartUrl} Policy={config.BrowserPolicyPath}");
 
-        var started = edge.Start();
-        AppendLog($"Edge.Start 返回 {started}");
+        using var hook = new KeyboardHook();
+        var policyStore = new BrowserPolicyStore(config.BrowserPolicyPath, config.StartUrl);
+        using var form = new BrowserForm(policyStore, config.StartUrl, AppendLog);
         Application.Run(form);
     }
 
@@ -37,7 +35,7 @@ static class Program
         catch { }
         try
         {
-            var publicDir = @"C:\Users\Public\Documents\KioskGuard";
+            const string publicDir = @"C:\Users\Public\Documents\KioskGuard";
             Directory.CreateDirectory(publicDir);
             File.AppendAllText(Path.Combine(publicDir, "launcher.log"), line);
         }

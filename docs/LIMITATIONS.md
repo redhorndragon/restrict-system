@@ -5,11 +5,12 @@
 ## 已覆盖
 
 - 目标用户登录后加载自定义 Shell（KioskLauncher）而非 explorer.exe，桌面/任务栏不出现。
-- Edge 以 `--kiosk` 全屏启动，退出后自动重启。
+- KioskLauncher 是基于 WebView2 的自研浏览器，普通（非无痕）持久化 profile，可保留网站登录状态；多标签、地址栏只读。
 - 屏蔽 Win、Alt+Tab、Ctrl+Esc、Ctrl+Shift+Esc、Alt+F4 等常用切出热键。
 - 禁用任务管理器（目标用户策略）。
-- Edge 通过 `URLBlocklist=*` + `URLAllowlist` 仅放行白名单网址。
-- SYSTEM 服务监听进程启动并定时扫描，终止目标用户的非白名单进程。
+- 浏览器在导航发起时（`NavigationStarting` / `NewWindowRequested`）按策略文件仅放行白名单网址，非白名单直接取消导航；不再依赖 Edge 注册表策略。
+- 白名单、起始页与 B 站 UP 主 ID 写入 `C:\ProgramData\KioskGuard\browser-policy.json`，浏览器定时热加载；策略文件缺失或无效时降级为仅允许起始页（fail-closed）。
+- SYSTEM 服务监听进程启动并定时扫描，终止目标用户的非白名单进程（仅保留 `msedgewebview2.exe` 与 `KioskLauncher.exe`，不含 `msedge.exe`）。
 - 白名单抓取失败时保留上次有效集合（fail-closed），不会整体放行。
 - 程序与数据目录收紧 ACL，标准用户无法修改。
 - 管理界面 `KioskAdmin.exe` 通过 `requireAdministrator` 清单强制 UAC 提权，并在启动时二次校验管理员角色；标准用户无法运行。
@@ -21,15 +22,16 @@
 - **获知管理员密码**：任何知道本机管理员凭据的人都可运行管理界面、卸载服务、还原 Shell。管理界面以 UAC 为唯一门槛，任何管理员均可运行，不区分具体管理员账户。
 - **离线挂载磁盘**：将系统盘挂载到其他系统可直接修改注册表和文件。
 - **硬件级手段**：如使用其他启动介质、BIOS/UEFI 设置等。
-- **Edge 内部页面**：`edge://` 等内部页面可能仍可通过某些内置快捷键访问；已通过策略禁用开发者工具和无痕模式，但无法保证覆盖所有内部页面。
+- **WebView2 / 浏览器内部能力**：自研浏览器未禁用 WebView2 内置的开发工具或内部 scheme（如 `edge://`、`devtools://`），如这些入口可被用户触发，可能成为绕过点；当前仅拦截 `http/https` 导航，非 http/https 一律阻止。
 - **白名单页面本身**：若 GitHub Pages 页面包含跳转到非白名单地址的链接，该地址不会被自动加入白名单，因此会被拦截；需管理员维护页面内容。
-- **家庭版限制**：无 AppLocker/WDAC，进程守护基于进程名与用户 SID，恶意程序若伪装成白名单进程名（如 `msedge.exe`）可能逃避检测；请保持目录 ACL 与系统更新。
-- **B 站 UP 主爬取的局限**：`bilibili:up={ID}` 规则通过无 API 的静态爬取空间页提取视频链接。B 站视频列表由 JS 动态加载，页面内嵌数据可能为空或格式变化；反爬（UA/Cookie/风控）也可能导致抓取失败。因此**不保证能拿到 UP 主全部视频**：成功时放行空间页与解析到的 BV 视频页，失败时仅放行空间页（不会整体放行）。不处理直播间，也不解析视频列表的分页。若需完整覆盖，建议改为在白名单页面直接列出具体视频 URL 或使用 B 站官方 API（本方案按需求未采用）。
+- **B 站来源链放行的局限**：从白名单中的 UP 主空间页（如 `space.bilibili.com/{UPID}`）点击跳转到 `www.bilibili.com/video/BV...` 会自动放行；但直接打开视频 URL、从非白名单页面跳转、或来源链中 referer 丢失时仍会被拦截。该规则基于导航来源，不解析 WBI 签名 API，也不做服务端静态爬取，因此不依赖 B 站接口变更，但同样不保证覆盖所有入口（如直播间、嵌入播放页、分享短链）。
+- **家庭版限制**：无 AppLocker/WDAC，进程守护基于进程名与用户 SID，恶意程序若伪装成白名单进程名（如 `msedgewebview2.exe`）可能逃避检测；请保持目录 ACL 与系统更新。
+- **策略文件 ACL**：目标用户对 `browser-policy.json` 仅有读取权限；任何能写入该文件（管理员凭据）的人都能改写白名单。
 
 ## 建议的补充加固
 
 - 为 BIOS/UEFI 与 Windows 管理员账户设置强密码。
 - 启用 BitLocker 并配置 TPM + PIN。
-- 若机器专供该用户使用，可将 Edge 策略改为 HKLM 下发以获得更强保护。
+- 若机器专供该用户使用，可通过组策略/注册表进一步限制 WebView2 运行时与其他浏览器，防止用户切换浏览器。
 - 定期审计 GitHub Pages 页面与本机日志。
 - 如有更高安全需求，考虑 Windows 专业版/企业版的分配访问（Assigned Access）、AppLocker/WDAC 与自定义 Credential Provider。

@@ -8,6 +8,9 @@ Write-Host '== Stopping KioskLauncher =='
 Get-Process KioskLauncher -ErrorAction SilentlyContinue | Stop-Process -Force
 
 Write-Host '== Replacing launcher files =='
-Copy-Item (Join-Path $launcherSrc 'KioskLauncher.dll') $installDir -Force
+foreach ($file in Get-ChildItem -LiteralPath $launcherSrc -File) {
+    if ($file.Name -in @('launcher.json', 'config.json')) { continue }
+    Copy-Item -LiteralPath $file.FullName -Destination $installDir -Force
+}
 
 Write-Host 'Done.'

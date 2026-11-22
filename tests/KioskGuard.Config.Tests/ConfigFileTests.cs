@@ -37,7 +37,7 @@ public class ConfigFileTests : IDisposable
             ["RefreshIntervalMinutes"] = 5,
             ["TargetUserSid"] = "S-1-5-21-123",
             ["TargetUserName"] = "study",
-            ["AllowedProcessNames"] = new JsonArray("msedge.exe"),
+            ["AllowedProcessNames"] = new JsonArray("msedgewebview2.exe"),
         };
         File.WriteAllText(path, root.ToJsonString());
 

@@ -17,9 +17,8 @@
    .\scripts\install.ps1 -User "study" -GitHubPagesUrl "https://redhorndragon.github.io/restrict-system/rules/allowlist.html"
    ```
 3. 可选参数：
-   - `-StartUrl`：Edge 起始页（默认同 `-GitHubPagesUrl`）。
+   - `-StartUrl`：浏览器起始页（默认同 `-GitHubPagesUrl`）。
    - `-RefreshMinutes`：白名单刷新周期，默认 10 分钟。
-   - `-EdgePath`：msedge.exe 路径（默认自动探测）。
    - `-ManifestScriptId` / `-AllowlistContainerId`：页面元素 id。
    - `-InstallDir`：安装目录，默认 `C:\Program Files\KioskGuard`。
 4. 脚本会发布全部项目、收紧 ACL、写入配置、设置目标用户 Shell、创建服务并添加管理员快捷方式。
@@ -30,17 +29,20 @@
 以管理员账户（如 `gbr`）登录后，从开始菜单「KioskGuard → Kiosk Access Management」启动（也可直接运行安装目录下的 `KioskAdmin.exe`）：
 
 - 程序通过 `app.manifest` 强制 UAC 提权；标准用户 `study` 无法运行，也无法借此解除自身限制。
-- 界面显示当前 GitHub Pages 地址、Edge 起始页与刷新周期，可修改后点击「保存并立即生效」。
+- 界面显示当前 GitHub Pages 地址、浏览器起始页与刷新周期，可修改后点击「保存并立即生效」。
 - 保存采用原子写入，失败不会破坏原配置；输入仅接受 http/https 地址与 1-1440 的刷新周期。
-- 白名单与 Edge 网址策略在数秒内生效；起始页变更可能需重启 Edge 或下次登录后完全生效。
+- 白名单与浏览器策略文件在数秒内生效；起始页变更会随策略文件更新被浏览器热加载。
 - 「从文件重新加载」可放弃未保存的修改，重新读取磁盘配置。
 
 ## 验证
 
-- 目标用户登录后应直接进入 Edge 全屏，无桌面和任务栏。
-- 尝试访问非白名单网址应被 Edge 拦截。
+- 目标用户登录后应直接进入自研浏览器（WebView2）窗口，无桌面和任务栏。
+- 浏览器顶部地址栏可见但只读，可用前进/后退/主页/刷新/新建标签按钮；地址栏不可输入。
+- 尝试访问非白名单网址应在浏览器内被拦截并记录日志。
+- 从白名单中的 B 站 UP 主空间页点击跳转到的视频页会自动放行。
 - 服务日志：`C:\ProgramData\KioskGuard\kioskguard-*.log` 与 Windows 事件日志 `KioskGuard` 源。
 - Launcher 日志：`%TEMP%\KioskGuard\launcher.log`。
+- 浏览器策略文件：`C:\ProgramData\KioskGuard\browser-policy.json`（含白名单与 B 站 UP 主 ID，浏览器热加载，目标用户只读）。
 
 ## 维护白名单
 
@@ -58,7 +60,8 @@
 
 - **服务未启动**：检查 `sc query KioskGuard`，查看事件日志；确认 `C:\ProgramData\KioskGuard\config.json` 存在且可读取。
 - **白名单为空**：检查 GitHub Pages URL 是否可访问、页面格式是否正确；查看日志中「未从页面解析出任何链接」。
-- **Edge 反复重启**：确认 `StartUrl` 有效、Edge 路径正确；查看 `launcher.log`。
+- **浏览器无法启动 / 反复退出**：确认 `StartUrl` 有效、`C:\ProgramData\KioskGuard\browser-policy.json` 可读；查看 `launcher.log`。若提示 WebView2 运行时缺失，请安装 Microsoft Edge WebView2 Runtime（Evergreen 版）。
+- **页面被拦截**：确认目标 URL 在白名单中，或从已放行的 B 站 UP 主空间页跳转；查看 `launcher.log` 中的「已阻止导航」记录。
 - **目标用户配置单元未加载**：安装时该用户不能处于已登录状态；若已登录，先注销后再安装。
 - **管理界面提示“配置不存在”**：确认 `C:\ProgramData\KioskGuard\config.json` 存在；若通过环境变量 `KIOSKGUARD_CONFIG` 指定了路径，管理界面与服务需使用相同值。
 - **保存成功但页面未更新**：GitHub Pages 有 CDN 缓存，服务按刷新周期重新抓取；可稍候或检查页面内容是否已发布。
