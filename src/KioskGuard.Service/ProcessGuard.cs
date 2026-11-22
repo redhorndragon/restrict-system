@@ -6,6 +6,19 @@ namespace KioskGuard.Service;
 
 public sealed class ProcessGuard : IDisposable
 {
+    private static readonly HashSet<string> ProtectedProcesses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "userinit.exe", "explorer.exe", "dwm.exe", "winlogon.exe", "csrss.exe",
+        "smss.exe", "wininit.exe", "services.exe", "lsass.exe", "svchost.exe",
+        "taskhostw.exe", "ShellHost.exe", "uihost.exe", "sihost.exe",
+        "RuntimeBroker.exe", "ApplicationFrameHost.exe", "SearchHost.exe",
+        "SearchApp.exe", "TextInputHost.exe", "ctfmon.exe", "conhost.exe",
+        "dllhost.exe", "audiodg.exe", "fontdrvhost.exe", "ChsIME.exe",
+        "CrossDeviceResume.exe", "nvcontainer.exe", "nvnodejslauncher.exe",
+        "igfxEMN.exe", "opushutil.exe", "spoolsv.exe", "MsMpEng.exe",
+        "SecurityHealthService.exe", "SearchIndexer.exe",
+    };
+
     private readonly ConfigStore _store;
     private readonly ILogger<ProcessGuard> _logger;
     private readonly HashSet<string> _allowed;
@@ -102,15 +115,16 @@ public sealed class ProcessGuard : IDisposable
     private void Enforce(int pid, string processName)
     {
         if (string.IsNullOrEmpty(processName)) return;
-        if (_allowed.Contains(Path.GetFileName(processName))) return;
+        var fileName = Path.GetFileName(processName);
+        if (_allowed.Contains(fileName) || ProtectedProcesses.Contains(fileName)) return;
 
         try
         {
             var process = Process.GetProcessById(pid);
             using (process)
             {
-                process.Kill(entireProcessTree: true);
-                LogTermination(processName);
+                process.Kill();
+                LogTermination(fileName);
             }
         }
         catch (ArgumentException) { }
