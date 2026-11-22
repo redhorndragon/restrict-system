@@ -39,7 +39,7 @@ public sealed class PolicyApplier
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "策略暂不可下发（目标用户可能未登录），稍后重试。");
+            _logger.LogWarning(ex, "策略下发失败（目标用户可能未登录），稍后重试。");
         }
     }
 
@@ -84,9 +84,14 @@ public sealed class PolicyApplier
     private static RegistryKey OpenUserKey(string subPath, AppConfig config)
     {
         var path = $@"{config.TargetUserSid}\{subPath}";
-        return RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Default)
-            .OpenSubKey(path, writable: true)
-            ?? throw new InvalidOperationException($"无法打开注册表路径 HKEY_USERS\\{path}（目标用户可能未登录）。");
+        using var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Default);
+        var root = users.OpenSubKey(config.TargetUserSid, writable: true)
+            ?? throw new InvalidOperationException($"无法打开注册表路径 HKEY_USERS\\{config.TargetUserSid}（目标用户可能未登录）。");
+        using (root)
+        {
+            return root.CreateSubKey(subPath, writable: true)
+                ?? throw new InvalidOperationException($"无法创建注册表路径 HKEY_USERS\\{path}。");
+        }
     }
 
     private static void ClearValues(RegistryKey key)

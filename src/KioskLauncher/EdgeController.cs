@@ -76,8 +76,9 @@ public sealed class EdgeController : IDisposable
     }
 
     public static string BuildArguments(string startUrl) =>
-        $"--kiosk \"{startUrl}\" --edge-kiosk-type=public-browsing --no-first-run " +
-        "--kiosk-idle-timeout-minutes=0 --start-maximized --disable-features=TranslateUI";
+        $"--start-maximized --no-first-run --no-default-browser-check " +
+        "--disable-session-crashed-bubble --disable-features=TranslateUI " +
+        $"\"{startUrl}\"";
 
     private string? ResolveEdgePath()
     {

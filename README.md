@@ -1,6 +1,6 @@
 # RestrictSystem — Windows 家庭版严格 Kiosk 访问限制
 
-面向 Windows 10/11 家庭版的网站访问限制软件。管理员一次性配置后，指定标准用户登录时进入严格 Kiosk 环境：无桌面/任务栏，仅 Edge 全屏运行，且只能访问从 GitHub Pages 页面解析出的白名单链接。
+面向 Windows 10/11 家庭版的网站访问限制软件。管理员一次性配置后，指定标准用户登录时进入受控环境：无桌面/任务栏，仅 Edge 最大化窗口运行，保留前进/后退/主页按钮且网站登录状态可保持（非 InPrivate），只能访问从 GitHub Pages 页面解析出的白名单链接。
 
 ## 组件
 
@@ -27,6 +27,16 @@
 ```powershell
 .\scripts\uninstall.ps1 -User "KioskUser"
 ```
+
+### 浏览器运行方式
+
+KioskLauncher 以普通最大化窗口（非 Edge kiosk/InPrivate）启动 Edge，这样可以保留网站登录状态并显示前进/后退/主页按钮。限制由以下机制共同实现：
+
+- Edge 策略：`URLBlocklist=*`、`URLAllowlist`（白名单网址）、`AddressBarIsReadOnly=1`（地址栏只读）、`IncognitoModeAvailability=2`（禁用 InPrivate）、`ShowHomeButton=1`、`DeveloperToolsAvailability=2`
+- KioskLauncher：屏蔽 Win/Alt+Tab/Alt+F4/Ctrl+Esc 等热键；Edge 退出后约 2.5 秒自动重启
+- KioskGuard 服务：结束目标用户的非白名单进程，禁用任务管理器
+
+注意：用户仍可点击标签栏的关闭按钮或新建标签页；新标签页打开的是白名单起始页，访问非白名单网址会被阻止。关闭 Edge 后会被 watchdog 自动重启。
 
 详见 `docs/DEPLOYMENT.md`；安全边界见 `docs/LIMITATIONS.md`。
 

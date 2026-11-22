@@ -5,15 +5,15 @@ namespace KioskLauncher.Tests;
 public class EdgeControllerTests
 {
     [Fact]
-    public void BuildArguments_Contains_Kiosk_Flags_And_StartUrl()
+    public void BuildArguments_Uses_Normal_Window_And_StartUrl()
     {
         var args = EdgeController.BuildArguments("https://example.com/portal");
 
-        Assert.Contains("--kiosk", args);
+        Assert.DoesNotContain("--kiosk", args);
+        Assert.DoesNotContain("--edge-kiosk-type=", args);
+        Assert.Contains("--start-maximized", args);
         Assert.Contains("https://example.com/portal", args);
-        Assert.Contains("--edge-kiosk-type=public-browsing", args);
         Assert.Contains("--no-first-run", args);
-        Assert.Contains("--kiosk-idle-timeout-minutes=0", args);
     }
 
     [Fact]
