@@ -72,7 +72,7 @@
         <div class="logo">K</div>
         <h1>Kiosk 允许访问列表</h1>
       </div>
-      <p class="subtitle">由 KioskGuard 服务抓取并下发到 Edge 白名单策略</p>
+      <p class="subtitle">由 KioskGuard 服务抓取并下发到自研浏览器的白名单策略</p>
     </section>
 
     <section class="card" hidden>
@@ -86,7 +86,7 @@
       <ol>
         <li>只保留需要放行的 <code>http/https</code> 绝对地址。</li>
         <li>数组支持字符串 <code>"https://…"</code> 或对象 <code>{"url":"https://…"}</code> 两种写法。</li>
-        <li>B 站 UP 主规则：使用 <code>"bilibili:up=23630128"</code>（换成实际 UP 主 ID），服务将爬取其空间页提取视频链接并放行；空间页始终放行，不处理直播间。爬取依赖页面内嵌数据，可能不完整。</li>
+        <li>B 站 UP 主规则：使用 <code>"bilibili:up=23630128"</code>（换成实际 UP 主 ID）。空间页始终放行；从该空间页点击跳转到的视频页会自动放行，直接打开视频地址或从不允许的来源跳转仍会被拦截。不处理直播间。</li>
         <li>抓取失败或列表为空时，服务保留上一次有效列表（fail-closed），不会放行全部网址。</li>
       </ol>
     </section>
