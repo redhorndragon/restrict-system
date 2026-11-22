@@ -86,7 +86,7 @@
       <ol>
         <li>只保留需要放行的 <code>http/https</code> 绝对地址。</li>
         <li>数组支持字符串 <code>"https://…"</code> 或对象 <code>{"url":"https://…"}</code> 两种写法。</li>
-        <li>B 站 UP 主规则：使用 <code>"bilibili:up=23630128"</code>（换成实际 UP 主 ID）。空间页始终放行；从该空间页点击跳转到的视频页会自动放行，直接打开视频地址或从不允许的来源跳转仍会被拦截。不处理直播间。</li>
+        <li>B 站 UP 主规则：使用 <code>"bilibili:up=23630128"</code>（换成实际 UP 主 ID）。仅放行投稿页 <code>/upload/video</code>、合集系列页 <code>/lists</code>，以及从这两个页面点击跳转到的视频页；空间首页及其他页面不放行，直接打开视频地址也会被拦截。不处理直播间。</li>
         <li>抓取失败或列表为空时，服务保留上一次有效列表（fail-closed），不会放行全部网址。</li>
       </ol>
     </section>
@@ -138,8 +138,8 @@
         var a = document.createElement('a');
         if (entry.indexOf('bilibili:up=') === 0) {
           var uid = entry.substring('bilibili:up='.length);
-          a.href = 'https://space.bilibili.com/' + uid;
-          a.textContent = 'B站 UP 主 ' + uid + '（空间页及其视频）';
+          a.href = 'https://space.bilibili.com/' + uid + '/upload/video';
+          a.textContent = 'B站 UP 主 ' + uid + '（投稿、合集及视频）';
         } else {
           a.href = entry;
           a.textContent = entry;

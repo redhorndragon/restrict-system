@@ -34,11 +34,23 @@ public class UrlPolicyTests
     }
 
     [Fact]
-    public void Bilibili_Video_From_Allowed_Up_Space_Is_Allowed()
+    public void Bilibili_Video_From_Allowed_Up_Submission_And_Lists_Is_Allowed()
     {
         var policy = Policy();
         const string video = "https://www.bilibili.com/video/BV1FV4y1h7LT/?spm_id_from=333.1387.homepage.video_card.click";
-        Assert.True(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/39737405?spm_id_from=333.337.search-card.all.click"));
+        Assert.True(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/39737405/upload/video"));
+        Assert.True(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/39737405/lists"));
+        Assert.True(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/39737405/lists/12345"));
+    }
+
+    [Fact]
+    public void Bilibili_Video_From_Space_Home_Is_Blocked()
+    {
+        var policy = Policy();
+        const string video = "https://www.bilibili.com/video/BV1FV4y1h7LT/";
+        Assert.False(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/39737405"));
+        Assert.False(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/39737405?spm_id_from=333.337.search-card.all.click"));
+        Assert.False(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/39737405/dynamic"));
     }
 
     [Fact]
@@ -46,7 +58,7 @@ public class UrlPolicyTests
     {
         var policy = Policy();
         const string video = "https://www.bilibili.com/video/BV1FV4y1h7LT/";
-        Assert.False(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/99999999"));
+        Assert.False(UrlPolicy.IsAllowed(video, policy, "https://space.bilibili.com/99999999/upload/video"));
         Assert.False(UrlPolicy.IsAllowed(video, policy));
     }
 

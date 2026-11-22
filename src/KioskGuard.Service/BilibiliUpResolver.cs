@@ -30,17 +30,21 @@ public sealed class BilibiliUpResolver
         foreach (var upId in upIds.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             ct.ThrowIfCancellationRequested();
-            result.Add($"https://space.bilibili.com/{upId}");
+            foreach (var url in GetAllowedSpaceUrls(upId)) result.Add(url);
 
             try
             {
-                var html = await _http.GetStringAsync($"https://space.bilibili.com/{upId}/video", ct);
-                var bvids = ExtractBvids(html);
+                var bvids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var page in new[] { "upload/video", "lists" })
+                {
+                    var html = await _http.GetStringAsync($"https://space.bilibili.com/{upId}/{page}", ct);
+                    foreach (var bvid in ExtractBvids(html)) bvids.Add(bvid);
+                }
                 foreach (var bvid in bvids)
                 {
                     result.Add($"https://www.bilibili.com/video/{bvid}/");
                 }
-                _logger.LogInformation("UP 主 {UpId} 空间页解析完成，提取到 {Count} 个视频链接。", upId, bvids.Count);
+                _logger.LogInformation("UP 主 {UpId} 投稿/合集页解析完成，提取到 {Count} 个视频链接。", upId, bvids.Count);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -48,11 +52,17 @@ public sealed class BilibiliUpResolver
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "UP 主 {UpId} 空间页爬取失败，仅放行空间页（降级）。", upId);
+                _logger.LogWarning(ex, "UP 主 {UpId} 投稿/合集页爬取失败，仅放行页面本身（降级）。", upId);
             }
         }
         return result.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
     }
+
+    public static IReadOnlyList<string> GetAllowedSpaceUrls(string upId) =>
+    [
+        $"https://space.bilibili.com/{upId}/upload/video",
+        $"https://space.bilibili.com/{upId}/lists",
+    ];
 
     public static IReadOnlyList<string> ExtractBvids(string html)
     {

@@ -71,6 +71,14 @@ public static class UrlPolicy
         var segments = source.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length == 0) return false;
         var upId = segments[0];
-        return policy.BilibiliUpIds.Any(id => string.Equals(id, upId, StringComparison.OrdinalIgnoreCase));
+        if (!policy.BilibiliUpIds.Any(id => string.Equals(id, upId, StringComparison.OrdinalIgnoreCase))) return false;
+
+        // 只允许从投稿页（/upload/video）或合集系列页（/lists 及其子页）跳转；空间首页不放行。
+        var isSubmission = segments.Length >= 3 &&
+                           string.Equals(segments[1], "upload", StringComparison.OrdinalIgnoreCase) &&
+                           string.Equals(segments[2], "video", StringComparison.OrdinalIgnoreCase);
+        var isCollection = segments.Length >= 2 &&
+                           string.Equals(segments[1], "lists", StringComparison.OrdinalIgnoreCase);
+        return isSubmission || isCollection;
     }
 }

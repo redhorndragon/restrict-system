@@ -146,6 +146,17 @@ public class AllowlistSourceTests
         Assert.Empty(BilibiliUpResolver.ExtractBvids(""));
     }
 
+    [Fact]
+    public void GetAllowedSpaceUrls_OnlySubmissionsAndLists_NoHome()
+    {
+        var urls = BilibiliUpResolver.GetAllowedSpaceUrls("39737405");
+
+        Assert.Equal(2, urls.Count);
+        Assert.Contains("https://space.bilibili.com/39737405/upload/video", urls);
+        Assert.Contains("https://space.bilibili.com/39737405/lists", urls);
+        Assert.DoesNotContain("https://space.bilibili.com/39737405", urls);
+    }
+
     [Theory]
     [InlineData("https://a.example.com/path", "https://a.example.com/path")]
     [InlineData("/docs", "https://example.github.io/docs")]
