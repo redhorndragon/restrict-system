@@ -72,6 +72,12 @@ public sealed class PolicyApplier
             edge.SetValue("HomepageLocation", config.StartUrl, RegistryValueKind.String);
             edge.SetValue("HomepageIsNewTabPage", 0, RegistryValueKind.DWord);
             edge.SetValue("NewTabPageLocation", config.StartUrl, RegistryValueKind.String);
+
+            // 强制每次启动只打开白名单起始页，避免恢复上次会话中被阻止的标签页
+            edge.SetValue("RestoreOnStartup", 4, RegistryValueKind.DWord);
+            using var startupUrls = edge.CreateSubKey("RestoreOnStartupURLs");
+            ClearValues(startupUrls);
+            startupUrls.SetValue("1", config.StartUrl, RegistryValueKind.String);
         }
     }
 

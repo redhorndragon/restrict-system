@@ -43,6 +43,7 @@ public sealed class EdgeController : IDisposable
     {
         try
         {
+            KillStaleEdgeProcesses();
             var psi = new ProcessStartInfo(_resolvedPath)
             {
                 UseShellExecute = false,
@@ -55,6 +56,26 @@ public sealed class EdgeController : IDisposable
         {
             _log($"启动 Edge 失败：{ex.Message}");
         }
+    }
+
+    private void KillStaleEdgeProcesses()
+    {
+        try
+        {
+            var currentSession = Process.GetCurrentProcess().SessionId;
+            foreach (var p in Process.GetProcessesByName("msedge"))
+            {
+                using (p)
+                {
+                    try
+                    {
+                        if (p.SessionId == currentSession) p.Kill(entireProcessTree: true);
+                    }
+                    catch { }
+                }
+            }
+        }
+        catch { }
     }
 
     private async Task WatchAsync(CancellationToken ct)
