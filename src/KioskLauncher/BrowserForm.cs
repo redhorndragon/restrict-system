@@ -97,13 +97,65 @@ public sealed class BrowserForm : Form
         newTab.Click += (_, _) => _ = AddTabAsync(_startUrl);
         toolbar.Controls.AddRange([_back, _forward, _home, refresh, newTab, _address]);
 
-        _tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(8, 4) };
+        _tabs = new TabControl
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Point(8, 4),
+            DrawMode = TabDrawMode.OwnerDrawFixed,
+            SizeMode = TabSizeMode.Fixed,
+            ItemSize = new Size(180, 26),
+        };
+        _tabs.DrawItem += Tabs_DrawItem;
+        _tabs.MouseDown += Tabs_MouseDown;
         _tabs.SelectedIndexChanged += (_, _) => UpdateAddress();
         Controls.Add(_tabs);
         Controls.Add(toolbar);
     }
 
     private BrowserTab? ActiveTab => _tabs.SelectedTab?.Tag as BrowserTab;
+
+    private static Rectangle GetCloseButtonBounds(Rectangle tabBounds) =>
+        new(tabBounds.Right - 20, tabBounds.Top + (tabBounds.Height - 16) / 2, 16, 16);
+
+    private void Tabs_DrawItem(object? sender, DrawItemEventArgs e)
+    {
+        var bounds = _tabs.GetTabRect(e.Index);
+        var selected = (e.State & DrawItemState.Selected) != 0;
+        using var background = new SolidBrush(selected ? SystemColors.Control : SystemColors.ControlDark);
+        e.Graphics.FillRectangle(background, bounds);
+
+        var close = GetCloseButtonBounds(bounds);
+        var textBounds = new Rectangle(bounds.Left + 6, bounds.Top, close.Left - bounds.Left - 8, bounds.Height);
+        TextRenderer.DrawText(e.Graphics, _tabs.TabPages[e.Index].Text, _tabs.Font, textBounds,
+            selected ? SystemColors.ControlText : SystemColors.GrayText,
+            TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+        TextRenderer.DrawText(e.Graphics, "×", _tabs.Font, close,
+            selected ? Color.Firebrick : Color.DimGray,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+    }
+
+    private void Tabs_MouseDown(object? sender, MouseEventArgs e)
+    {
+        for (var i = 0; i < _tabs.TabPages.Count; i++)
+        {
+            if (!GetCloseButtonBounds(_tabs.GetTabRect(i)).Contains(e.Location)) continue;
+            CloseTab(i);
+            return;
+        }
+    }
+
+    private void CloseTab(int index)
+    {
+        var page = _tabs.TabPages[index];
+        var tab = page.Tag as BrowserTab;
+        _tabs.TabPages.RemoveAt(index);
+        tab?.WebView.Dispose();
+
+        if (_tabs.TabPages.Count == 0)
+            _ = AddTabAsync(_startUrl);
+        else
+            UpdateAddress();
+    }
 
     protected override async void OnShown(EventArgs e)
     {
