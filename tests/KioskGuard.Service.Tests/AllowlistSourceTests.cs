@@ -79,6 +79,73 @@ public class AllowlistSourceTests
         Assert.Equal("https://b.example.com/", urls[1]);
     }
 
+    [Fact]
+    public void ParseRules_ExtractsBilibiliUpRuleAlongsideUrls()
+    {
+        var html = """
+            <script type="application/json" id="kiosk-allowlist">
+            ["https://example.com/", "bilibili:up=23630128", "bilibili:up=123"]
+            </script>
+            """;
+
+        var rules = AllowlistSource.ParseRules(html, BaseUrl, "kiosk-allowlist", "kiosk-allowlist");
+
+        Assert.Single(rules.Urls);
+        Assert.Equal("https://example.com/", rules.Urls[0]);
+        Assert.Equal(2, rules.BilibiliUpIds.Count);
+        Assert.Contains("23630128", rules.BilibiliUpIds);
+        Assert.Contains("123", rules.BilibiliUpIds);
+    }
+
+    [Fact]
+    public void Parse_IgnoresBilibiliUpRuleInPlainUrlList()
+    {
+        var html = """
+            <script type="application/json" id="kiosk-allowlist">
+            ["https://example.com/", "bilibili:up=23630128"]
+            </script>
+            """;
+
+        var urls = AllowlistSource.Parse(html, BaseUrl, "kiosk-allowlist", "kiosk-allowlist");
+
+        Assert.Single(urls);
+    }
+
+    [Theory]
+    [InlineData("bilibili:up=23630128", true, "23630128")]
+    [InlineData("BILIBILI:UP=123", true, "123")]
+    [InlineData("bilibili:up=abc", false, null)]
+    [InlineData("bilibili:up=", false, null)]
+    [InlineData("https://example.com", false, null)]
+    public void TryParseBilibiliUpRule_Works(string raw, bool expected, string? expectedId)
+    {
+        var result = AllowlistSource.TryParseBilibiliUpRule(raw, out var id);
+        Assert.Equal(expected, result);
+        Assert.Equal(expectedId, id);
+    }
+
+    [Fact]
+    public void ExtractBvids_FindsBvidInJsonAndUrls()
+    {
+        var html = """
+            <script>window.__INITIAL_STATE__ = {"video":{"bvid":"BV1xx411c7mD"}};</script>
+            <a href="https://www.bilibili.com/video/BV1GJ411x7h7/">视频</a>
+            <a href="/video/BV1GJ411x7h7/">重复</a>
+            """;
+
+        var bvids = BilibiliUpResolver.ExtractBvids(html);
+
+        Assert.Equal(2, bvids.Count);
+        Assert.Contains("BV1xx411c7mD", bvids);
+        Assert.Contains("BV1GJ411x7h7", bvids);
+    }
+
+    [Fact]
+    public void ExtractBvids_EmptyHtml_ReturnsEmpty()
+    {
+        Assert.Empty(BilibiliUpResolver.ExtractBvids(""));
+    }
+
     [Theory]
     [InlineData("https://a.example.com/path", "https://a.example.com/path")]
     [InlineData("/docs", "https://example.github.io/docs")]

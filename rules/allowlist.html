@@ -86,6 +86,7 @@
       <ol>
         <li>只保留需要放行的 <code>http/https</code> 绝对地址。</li>
         <li>数组支持字符串 <code>"https://…"</code> 或对象 <code>{"url":"https://…"}</code> 两种写法。</li>
+        <li>B 站 UP 主规则：使用 <code>"bilibili:up=23630128"</code>（换成实际 UP 主 ID），服务将爬取其空间页提取视频链接并放行；空间页始终放行，不处理直播间。爬取依赖页面内嵌数据，可能不完整。</li>
         <li>抓取失败或列表为空时，服务保留上一次有效列表（fail-closed），不会放行全部网址。</li>
       </ol>
     </section>
@@ -107,7 +108,8 @@
   <script type="application/json" id="kiosk-allowlist">
   [
     "https://example.com/",
-    "https://learn.microsoft.com/"
+    "https://learn.microsoft.com/",
+    "bilibili:up=23630128"
   ]
   </script>
 
@@ -127,13 +129,19 @@
         list.innerHTML = '<li class="empty">暂无允许的链接，请在 kiosk-allowlist 脚本块中添加。</li>';
         return;
       }
-      urls.forEach(function (url) {
+      urls.forEach(function (entry) {
         var li = document.createElement('li');
         var dot = document.createElement('span');
         dot.className = 'dot';
         var a = document.createElement('a');
-        a.href = url;
-        a.textContent = url;
+        if (entry.indexOf('bilibili:up=') === 0) {
+          var uid = entry.substring('bilibili:up='.length);
+          a.href = 'https://space.bilibili.com/' + uid;
+          a.textContent = 'B站 UP 主 ' + uid + '（空间页及其视频）';
+        } else {
+          a.href = entry;
+          a.textContent = entry;
+        }
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
         li.appendChild(dot);

@@ -10,14 +10,16 @@ public sealed class AllowlistSource
 {
     private readonly ConfigStore _store;
     private readonly ILogger<AllowlistSource> _logger;
+    private readonly BilibiliUpResolver _bilibiliResolver;
     private readonly HttpClient _http;
     private readonly HashSet<string> _current = new(StringComparer.OrdinalIgnoreCase);
     private Allowlist? _cache;
 
-    public AllowlistSource(ConfigStore store, ILogger<AllowlistSource> logger)
+    public AllowlistSource(ConfigStore store, ILogger<AllowlistSource> logger, BilibiliUpResolver bilibiliResolver)
     {
         _store = store;
         _logger = logger;
+        _bilibiliResolver = bilibiliResolver;
         _http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         _cache = Allowlist.Load(store.Current.CachePath);
         if (_cache?.Urls != null)
@@ -40,16 +42,22 @@ public sealed class AllowlistSource
         try
         {
             var html = await _http.GetStringAsync(config.GitHubPagesUrl, ct);
-            var parsed = Parse(html, config.GitHubPagesUrl, config.ManifestScriptId, config.AllowlistContainerId);
+            var rules = ParseRules(html, config.GitHubPagesUrl, config.ManifestScriptId, config.AllowlistContainerId);
 
-            if (parsed.Count == 0)
+            if (rules.Urls.Count == 0 && rules.BilibiliUpIds.Count == 0)
             {
                 _logger.LogWarning("未从页面解析出任何链接，保持上一次白名单（fail-closed）。");
                 return _current;
             }
 
             _current.Clear();
-            foreach (var url in parsed) _current.Add(url);
+            foreach (var url in rules.Urls) _current.Add(url);
+
+            if (rules.BilibiliUpIds.Count > 0)
+            {
+                var bilibiliUrls = await _bilibiliResolver.ResolveAsync(rules.BilibiliUpIds, ct);
+                foreach (var url in bilibiliUrls) _current.Add(url);
+            }
 
             if (!string.IsNullOrWhiteSpace(config.StartUrl)) _current.Add(NormalizeUrl(config.StartUrl, config.GitHubPagesUrl)!);
 
@@ -85,11 +93,15 @@ public sealed class AllowlistSource
     }
 
     public static List<string> Parse(string html, string baseUrl, string manifestScriptId, string containerId)
+        => ParseRules(html, baseUrl, manifestScriptId, containerId).Urls;
+
+    public static AllowlistRules ParseRules(string html, string baseUrl, string manifestScriptId, string containerId)
     {
         var context = BrowsingContext.New(Configuration.Default);
         var document = context.OpenAsync(req => req.Content(html)).GetAwaiter().GetResult();
 
-        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var upIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var manifest = document.QuerySelector($"script#{CssEscape(manifestScriptId)}");
         if (manifest != null && string.Equals(manifest.GetAttribute("type"), "application/json", StringComparison.OrdinalIgnoreCase))
@@ -103,13 +115,11 @@ public sealed class AllowlistSource
                     {
                         if (element.ValueKind == JsonValueKind.String)
                         {
-                            var url = NormalizeUrl(element.GetString() ?? string.Empty, baseUrl);
-                            if (url != null) result.Add(url);
+                            AddEntry(element.GetString() ?? string.Empty, baseUrl, urls, upIds);
                         }
                         else if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty("url", out var urlProp))
                         {
-                            var url = NormalizeUrl(urlProp.GetString() ?? string.Empty, baseUrl);
-                            if (url != null) result.Add(url);
+                            AddEntry(urlProp.GetString() ?? string.Empty, baseUrl, urls, upIds);
                         }
                     }
                 }
@@ -120,20 +130,44 @@ public sealed class AllowlistSource
             }
         }
 
-        if (result.Count == 0)
+        if (urls.Count == 0 && upIds.Count == 0)
         {
             var scope = document.QuerySelector($"#{CssEscape(containerId)}") ?? document.Body ?? document.DocumentElement;
             if (scope != null)
             {
                 foreach (var anchor in scope.QuerySelectorAll("a[href]"))
                 {
-                    var url = NormalizeUrl(anchor.GetAttribute("href") ?? string.Empty, baseUrl);
-                    if (url != null) result.Add(url);
+                    AddEntry(anchor.GetAttribute("href") ?? string.Empty, baseUrl, urls, upIds);
                 }
             }
         }
 
-        return result.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        return new AllowlistRules(
+            urls.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
+            upIds.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList());
+    }
+
+    private static void AddEntry(string raw, string baseUrl, HashSet<string> urls, HashSet<string> upIds)
+    {
+        if (TryParseBilibiliUpRule(raw, out var upId))
+        {
+            if (!string.IsNullOrWhiteSpace(upId)) upIds.Add(upId!);
+            return;
+        }
+        var url = NormalizeUrl(raw, baseUrl);
+        if (url != null) urls.Add(url);
+    }
+
+    public static bool TryParseBilibiliUpRule(string raw, out string? upId)
+    {
+        upId = null;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+        var value = raw.Trim();
+        if (!value.StartsWith("bilibili:up=", StringComparison.OrdinalIgnoreCase)) return false;
+        var id = value.Substring("bilibili:up=".Length).Trim();
+        if (id.Length == 0 || !id.All(char.IsDigit)) return false;
+        upId = id;
+        return true;
     }
 
     public static string? NormalizeUrl(string raw, string baseUrl)

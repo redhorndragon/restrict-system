@@ -57,4 +57,6 @@
 
 仓库中的 `rules/allowlist.html` 采用方式一，页面可见列表由脚本从 JSON manifest 渲染，无需手动同步两处内容。
 
+**B 站 UP 主规则**：在数组中使用 `"bilibili:up=23630128"`（换成实际 UP 主 ID），服务会爬取 `https://space.bilibili.com/{ID}/video`，从页面内嵌数据提取视频 BV 号并放行对应视频链接，同时始终放行该 UP 主空间页本身。不处理 `live.bilibili.com` 直播间。注意：B 站视频列表由 JS 动态加载，静态爬取依赖页面内嵌数据，可能不完整或受反爬影响；爬取失败时仅放行空间页（降级），不影响其他白名单条目。详见 `docs/LIMITATIONS.md`。
+
 此外，管理员可在 `KioskAdmin` 界面的"额外允许的网址"卡片中增删 URL，这些 URL 保存在本机 `config.json` 的 `ExtraAllowedUrls` 字段，服务抓取 GitHub Pages 白名单后会与其合并。适用于临时追加允许地址而无需修改 GitHub 页面。

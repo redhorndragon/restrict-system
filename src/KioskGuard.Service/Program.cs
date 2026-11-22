@@ -21,6 +21,7 @@ try
 
     builder.Services.AddSingleton(new ConfigStore(configPath));
     builder.Services.AddSingleton(new SemaphoreSlim(1, 1));
+    builder.Services.AddSingleton<BilibiliUpResolver>();
     builder.Services.AddSingleton<AllowlistSource>();
     builder.Services.AddSingleton<PolicyApplier>();
     builder.Services.AddSingleton<ProcessGuard>();
