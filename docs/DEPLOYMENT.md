@@ -27,7 +27,7 @@
 
 ## 管理界面
 
-以管理员账户（如 `gbr`）登录后，从开始菜单「KioskGuard → Kiosk 访问限制管理」启动（也可直接运行安装目录下的 `KioskAdmin.exe`）：
+以管理员账户（如 `gbr`）登录后，从开始菜单「KioskGuard → Kiosk Access Management」启动（也可直接运行安装目录下的 `KioskAdmin.exe`）：
 
 - 程序通过 `app.manifest` 强制 UAC 提权；标准用户 `study` 无法运行，也无法借此解除自身限制。
 - 界面显示当前 GitHub Pages 地址、Edge 起始页与刷新周期，可修改后点击「保存并立即生效」。

@@ -12,6 +12,7 @@ public class AppConfig
     public string SharedConfigPath { get; set; } = @"C:\ProgramData\KioskGuard\config.json";
     public string ManifestScriptId { get; set; } = "kiosk-allowlist";
     public string AllowlistContainerId { get; set; } = "kiosk-allowlist";
+    public List<string> ExtraAllowedUrls { get; set; } = [];
     public List<string> AllowedProcessNames { get; set; } =
     [
         "msedge.exe",

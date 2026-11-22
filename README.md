@@ -7,7 +7,7 @@
 - `KioskGuard.Service`：以 LocalSystem 运行的 Windows 服务，负责抓取白名单、下发策略、守护进程，并热加载配置。
 - `KioskLauncher`：目标用户的自定义 Winlogon Shell，提供全屏宿主窗口、Edge 看护与热键屏蔽。
 - `KioskSetup`：管理员一次性配置工具，设置 Shell、写配置、安装服务。
-- `KioskAdmin`：管理员图形界面，修改白名单源（GitHub Pages 地址、起始页、刷新周期），保存后秒级生效。强制 UAC 提权，仅管理员可运行。
+- `KioskAdmin`：管理员图形界面，修改白名单源（GitHub Pages 地址、起始页、刷新周期），并可增删"额外允许的网址"（与 GitHub Pages 白名单合并），保存后秒级生效。强制 UAC 提权，仅管理员可运行。
 - `KioskGuard.Config`：配置模型与文件读写共享库。
 
 ## 快速开始
@@ -21,7 +21,7 @@
    .\scripts\install.ps1 -User "study" -GitHubPagesUrl "https://redhorndragon.github.io/restrict-system/rules/allowlist.html"
    ```
 3. 重启并使目标用户登录。
-4. 管理员账户（如 gbr）可从开始菜单运行「Kiosk 访问限制管理」，修改白名单源；保存后服务在数秒内自动刷新，无需重启。起始页变更可能需重启 Edge 或下次登录后完全生效。
+4. 管理员账户（如 gbr）可从开始菜单运行「Kiosk Access Management」，修改白名单源；保存后服务在数秒内自动刷新，无需重启。起始页变更可能需重启 Edge 或下次登录后完全生效。
 
 卸载：
 ```powershell
@@ -56,3 +56,5 @@
 仅允许 `http`/`https` 链接；相对路径按页面 URL 解析；`javascript:`、`mailto:`、`data:` 等被忽略。抓取失败或解析为空时保留上一次有效白名单（fail-closed）。
 
 仓库中的 `rules/allowlist.html` 采用方式一，页面可见列表由脚本从 JSON manifest 渲染，无需手动同步两处内容。
+
+此外，管理员可在 `KioskAdmin` 界面的"额外允许的网址"卡片中增删 URL，这些 URL 保存在本机 `config.json` 的 `ExtraAllowedUrls` 字段，服务抓取 GitHub Pages 白名单后会与其合并。适用于临时追加允许地址而无需修改 GitHub 页面。

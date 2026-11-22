@@ -32,7 +32,7 @@ internal static class Program
             var installDir = Path.GetDirectoryName(options.LauncherPath) ?? Environment.CurrentDirectory;
 
             WriteConfig(installDir, options, sid);
-            ConfigureShell(sid, options.LauncherPath);
+            ConfigureShell(sid, options.UserName, options.LauncherPath);
             ProtectDirectory(installDir);
             ProtectDirectory(ProgramDataDir);
             InstallService(options.ServicePath);
@@ -57,7 +57,10 @@ internal static class Program
 
     private static SecurityIdentifier ResolveSid(string userName)
     {
-        var account = new NTAccount(userName.Contains('\\') ? userName : $".\\{userName}");
+        var accountName = userName.Contains('\\') || userName.Contains('@')
+            ? userName
+            : $@"{Environment.MachineName}\{userName}";
+        var account = new NTAccount(accountName);
         return (SecurityIdentifier)account.Translate(typeof(SecurityIdentifier));
     }
 
@@ -68,7 +71,7 @@ internal static class Program
         {
             options.GitHubPagesUrl,
             TargetUserSid = sid.Value,
-            options.UserName,
+            TargetUserName = options.UserName,
             options.StartUrl,
             options.RefreshIntervalMinutes,
             ProcessScanIntervalMs = 500,
@@ -99,7 +102,7 @@ internal static class Program
             JsonSerializer.Serialize(launcherConfig, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static void ConfigureShell(SecurityIdentifier sid, string launcherPath)
+    private static void ConfigureShell(SecurityIdentifier sid, string userName, string launcherPath)
     {
         const string hiveName = "KioskGuardTempHive";
         var loadedByUs = false;
@@ -107,7 +110,7 @@ internal static class Program
         {
             if (Registry.Users.OpenSubKey(sid.Value) == null)
             {
-                var profilePath = GetProfilePath(sid);
+                var profilePath = EnsureProfile(sid, userName);
                 var ntuser = Path.Combine(profilePath, "NTUSER.DAT");
                 if (!File.Exists(ntuser)) throw new InvalidOperationException($"未找到用户配置单元：{ntuser}");
                 RunProcess("reg.exe", $"load HKU\\{hiveName} \"{ntuser}\"");
@@ -131,12 +134,34 @@ internal static class Program
         }
     }
 
-    private static string GetProfilePath(SecurityIdentifier sid)
+    private static string EnsureProfile(SecurityIdentifier sid, string userName)
     {
-        using var key = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\{sid.Value}")
-                        ?? throw new InvalidOperationException("未找到用户 ProfileList。");
-        return key.GetValue("ProfileImagePath")?.ToString()
-               ?? throw new InvalidOperationException("ProfileImagePath 为空。");
+        var profileKeyPath = $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\{sid.Value}";
+        using var existing = Registry.LocalMachine.OpenSubKey(profileKeyPath);
+        if (existing != null)
+        {
+            var path = existing.GetValue("ProfileImagePath")?.ToString();
+            if (!string.IsNullOrEmpty(path)) return path;
+        }
+
+        var profilePath = Path.Combine(@"C:\Users", Path.GetFileName(userName.Replace('\\', '/').TrimEnd('/')));
+        Directory.CreateDirectory(profilePath);
+
+        var defaultNtuser = @"C:\Users\Default\NTUSER.DAT";
+        var ntuser = Path.Combine(profilePath, "NTUSER.DAT");
+        if (!File.Exists(ntuser) && File.Exists(defaultNtuser))
+        {
+            File.Copy(defaultNtuser, ntuser);
+        }
+
+        using var key = Registry.LocalMachine.CreateSubKey(profileKeyPath, true)
+                        ?? throw new InvalidOperationException("无法创建用户 ProfileList。");
+        key.SetValue("ProfileImagePath", profilePath, RegistryValueKind.ExpandString);
+        key.SetValue("Flags", 0, RegistryValueKind.DWord);
+        key.SetValue("State", 0, RegistryValueKind.DWord);
+
+        Console.WriteLine($"已为用户创建配置骨架：{profilePath}");
+        return profilePath;
     }
 
     private static void ProtectDirectory(string path)

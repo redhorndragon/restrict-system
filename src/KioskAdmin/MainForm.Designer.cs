@@ -29,6 +29,14 @@ partial class MainForm
     private Label refreshHint = null!;
     private Label refreshError = null!;
 
+    private RoundPanel urlCard = null!;
+    private Label urlCardTitle = null!;
+    private ListBox urlListBox = null!;
+    private TextBox newUrlTextBox = null!;
+    private Button addUrlButton = null!;
+    private Button removeUrlButton = null!;
+    private Label urlError = null!;
+
     private RoundPanel actionCard = null!;
     private Button reloadButton = null!;
     private Button saveButton = null!;
@@ -51,8 +59,8 @@ partial class MainForm
         var textMuted = Color.FromArgb(0x6B, 0x72, 0x80);
 
         Text = "Kiosk 访问限制管理";
-        ClientSize = new Size(760, 500);
-        MinimumSize = new Size(700, 460);
+        ClientSize = new Size(760, 690);
+        MinimumSize = new Size(700, 650);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = bg;
         Font = UiFont(12f, FontStyle.Regular);
@@ -95,13 +103,13 @@ partial class MainForm
 
         githubLabel = FieldLabel("GitHub Pages 地址", 22, 56);
         var githubBorder = new RoundPanel { Location = new Point(22, 78), Size = new Size(440, 34), CornerRadius = 8, BackColor = Color.White, BorderColor = Color.FromArgb(0xD1, 0xD5, 0xDB) };
-        githubTextBox = FieldInput(22, 78, githubBorder);
+        githubTextBox = FieldInput(githubBorder);
         githubHint = FieldHint("用于解析允许链接的公开静态页面", 480, 84, 210, textMuted);
         githubError = FieldError(22, 112, "");
 
         startLabel = FieldLabel("Edge 起始页", 22, 132);
         var startBorder = new RoundPanel { Location = new Point(22, 154), Size = new Size(440, 34), CornerRadius = 8, BackColor = Color.White, BorderColor = Color.FromArgb(0xD1, 0xD5, 0xDB) };
-        startTextBox = FieldInput(22, 154, startBorder);
+        startTextBox = FieldInput(startBorder);
         startHint = FieldHint("Kiosk 模式下 Edge 打开的首个地址", 480, 160, 210, textMuted);
         startError = FieldError(22, 188, "");
 
@@ -125,12 +133,10 @@ partial class MainForm
         configCard.Controls.Add(configCardTitle);
         configCard.Controls.Add(githubLabel);
         configCard.Controls.Add(githubBorder);
-        configCard.Controls.Add(githubTextBox);
         configCard.Controls.Add(githubHint);
         configCard.Controls.Add(githubError);
         configCard.Controls.Add(startLabel);
         configCard.Controls.Add(startBorder);
-        configCard.Controls.Add(startTextBox);
         configCard.Controls.Add(startHint);
         configCard.Controls.Add(startError);
         configCard.Controls.Add(refreshLabel);
@@ -140,8 +146,76 @@ partial class MainForm
 
         contentPanel.Controls.Add(configCard);
 
+        // 额外允许 URL 卡片
+        urlCard = new RoundPanel { Location = new Point(20, 336), Size = new Size(700, 210), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, BackColor = Color.White, CornerRadius = 12 };
+        urlCardTitle = new Label { Text = "额外允许的网址（与 GitHub Pages 白名单合并）", Location = new Point(22, 16), AutoSize = true, Font = UiFont(14f, FontStyle.Bold), ForeColor = textDark };
+
+        urlListBox = new ListBox
+        {
+            Location = new Point(22, 48),
+            Size = new Size(656, 92),
+            Font = UiFont(12f, FontStyle.Regular),
+            ForeColor = textDark,
+            BackColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle,
+            IntegralHeight = false,
+        };
+
+        var newUrlBorder = new RoundPanel { Location = new Point(22, 152), Size = new Size(430, 34), CornerRadius = 8, BackColor = Color.White, BorderColor = Color.FromArgb(0xD1, 0xD5, 0xDB) };
+        newUrlTextBox = new TextBox
+        {
+            Location = new Point(10, 7),
+            Size = new Size(410, 22),
+            BorderStyle = BorderStyle.None,
+            Font = UiFont(12f, FontStyle.Regular),
+            ForeColor = textDark,
+            BackColor = Color.White,
+        };
+        newUrlTextBox.GotFocus += (_, _) => newUrlBorder.BorderColor = primary;
+        newUrlTextBox.LostFocus += (_, _) => newUrlBorder.BorderColor = Color.FromArgb(0xD1, 0xD5, 0xDB);
+        newUrlBorder.Controls.Add(newUrlTextBox);
+
+        addUrlButton = new Button
+        {
+            Text = "添加",
+            Location = new Point(466, 152),
+            Size = new Size(96, 34),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = primary,
+            ForeColor = Color.White,
+            Font = UiFont(12f, FontStyle.Bold),
+            Cursor = Cursors.Hand,
+        };
+        addUrlButton.FlatAppearance.BorderSize = 0;
+        addUrlButton.MouseEnter += (_, _) => addUrlButton.BackColor = primaryDark;
+        addUrlButton.MouseLeave += (_, _) => addUrlButton.BackColor = primary;
+
+        removeUrlButton = new Button
+        {
+            Text = "删除选中",
+            Location = new Point(570, 152),
+            Size = new Size(108, 34),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = Color.FromArgb(0xDC, 0x26, 0x26),
+            Font = UiFont(12f, FontStyle.Bold),
+            Cursor = Cursors.Hand,
+        };
+        removeUrlButton.FlatAppearance.BorderColor = Color.FromArgb(0xF8, 0xAE, 0xAE);
+        removeUrlButton.FlatAppearance.BorderSize = 1;
+
+        urlError = new Label { Text = "", Location = new Point(22, 190), AutoSize = true, Font = UiFont(11f, FontStyle.Regular), ForeColor = Color.FromArgb(0xDC, 0x26, 0x26) };
+
+        urlCard.Controls.Add(urlCardTitle);
+        urlCard.Controls.Add(urlListBox);
+        urlCard.Controls.Add(newUrlBorder);
+        urlCard.Controls.Add(addUrlButton);
+        urlCard.Controls.Add(removeUrlButton);
+        urlCard.Controls.Add(urlError);
+        contentPanel.Controls.Add(urlCard);
+
         // 操作区
-        actionCard = new RoundPanel { Location = new Point(20, 340), Size = new Size(700, 74), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, BackColor = Color.White, CornerRadius = 12 };
+        actionCard = new RoundPanel { Location = new Point(20, 558), Size = new Size(700, 74), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, BackColor = Color.White, CornerRadius = 12 };
         reloadButton = new Button
         {
             Text = "从文件重新加载",
@@ -215,12 +289,12 @@ partial class MainForm
             Font = UiFont(12f, FontStyle.Bold), ForeColor = Color.FromArgb(0x37, 0x41, 0x51),
         };
 
-        TextBox FieldInput(int x, int y, RoundPanel border)
+        TextBox FieldInput(RoundPanel border)
         {
             var tb = new TextBox
             {
-                Location = new Point(x + 10, y + 6),
-                Size = new Size(420, 22),
+                Location = new Point(10, 7),
+                Size = new Size(418, 22),
                 BorderStyle = BorderStyle.None,
                 Font = UiFont(12f, FontStyle.Regular),
                 ForeColor = textDark,
@@ -228,6 +302,7 @@ partial class MainForm
             };
             tb.GotFocus += (_, _) => border.BorderColor = primary;
             tb.LostFocus += (_, _) => border.BorderColor = Color.FromArgb(0xD1, 0xD5, 0xDB);
+            border.Controls.Add(tb);
             return tb;
         }
 

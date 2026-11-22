@@ -77,6 +77,37 @@ public class ConfigFileTests : IDisposable
         Assert.Equal(1500, updated["RestartDelayMs"]!.GetValue<int>());
     }
 
+    [Fact]
+    public void SaveExtraAllowedUrls_DeduplicatesAndPreservesOtherKeys()
+    {
+        var path = Path.Combine(_tempDir, "config.json");
+        File.WriteAllText(path, "{\"GitHubPagesUrl\":\"https://base\",\"TargetUserName\":\"study\"}");
+
+        ConfigFile.SaveExtraAllowedUrls(path, new[]
+        {
+            "https://a.example.com",
+            "https://A.EXAMPLE.COM",
+            " https://b.example.com ",
+        });
+
+        var loaded = ConfigFile.Load(path);
+        Assert.Equal(2, loaded.ExtraAllowedUrls.Count);
+        Assert.Contains("https://a.example.com", loaded.ExtraAllowedUrls);
+        Assert.Contains("https://b.example.com", loaded.ExtraAllowedUrls);
+        Assert.Equal("https://base", loaded.GitHubPagesUrl);
+        Assert.Equal("study", loaded.TargetUserName);
+    }
+
+    [Fact]
+    public void SaveExtraAllowedUrls_RejectsInvalidUrl()
+    {
+        var path = Path.Combine(_tempDir, "config.json");
+        File.WriteAllText(path, "{}");
+
+        Assert.Throws<ArgumentException>(() =>
+            ConfigFile.SaveExtraAllowedUrls(path, new[] { "ftp://bad" }));
+    }
+
     public void Dispose()
     {
         try { Directory.Delete(_tempDir, recursive: true); } catch { }

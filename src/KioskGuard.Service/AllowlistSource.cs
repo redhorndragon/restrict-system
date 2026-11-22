@@ -53,6 +53,15 @@ public sealed class AllowlistSource
 
             if (!string.IsNullOrWhiteSpace(config.StartUrl)) _current.Add(NormalizeUrl(config.StartUrl, config.GitHubPagesUrl)!);
 
+            if (config.ExtraAllowedUrls != null)
+            {
+                foreach (var extra in config.ExtraAllowedUrls)
+                {
+                    var normalized = NormalizeUrl(extra, config.GitHubPagesUrl);
+                    if (normalized != null) _current.Add(normalized);
+                }
+            }
+
             _cache = new Allowlist
             {
                 FetchedAt = DateTimeOffset.UtcNow,

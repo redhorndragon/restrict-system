@@ -9,6 +9,7 @@
   "SharedConfigPath": "C:\\ProgramData\\KioskGuard\\config.json",
   "ManifestScriptId": "kiosk-allowlist",
   "AllowlistContainerId": "kiosk-allowlist",
+  "ExtraAllowedUrls": [],
   "AllowedProcessNames": [
     "msedge.exe",
     "msedgewebview2.exe",

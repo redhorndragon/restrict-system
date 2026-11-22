@@ -17,6 +17,8 @@ try
 {
     var builder = Host.CreateApplicationBuilder(args);
 
+    builder.Services.AddWindowsService(options => options.ServiceName = "KioskGuard");
+
     builder.Services.AddSingleton(new ConfigStore(configPath));
     builder.Services.AddSingleton(new SemaphoreSlim(1, 1));
     builder.Services.AddSingleton<AllowlistSource>();

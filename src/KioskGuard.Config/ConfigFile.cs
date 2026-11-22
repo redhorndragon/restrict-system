@@ -1,15 +1,22 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 
 namespace KioskGuard.Config;
 
 public static class ConfigFile
 {
+    private static readonly JsonSerializerOptions WriteOptions = new()
+    {
+        WriteIndented = true,
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
+    };
+
     public static AppConfig Load(string path)
     {
         if (!File.Exists(path)) return new AppConfig();
         var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
+        return JsonSerializer.Deserialize<AppConfig>(json, WriteOptions) ?? new AppConfig();
     }
 
     public static ValidationResult Validate(string githubPagesUrl, string startUrl, int refreshMinutes)
@@ -40,7 +47,25 @@ public static class ConfigFile
         root[nameof(AppConfig.StartUrl)] = startUrl;
         root[nameof(AppConfig.RefreshIntervalMinutes)] = refreshMinutes;
 
-        AtomicWrite(configPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        AtomicWrite(configPath, root.ToJsonString(WriteOptions));
+    }
+
+    public static void SaveExtraAllowedUrls(string configPath, IEnumerable<string> urls)
+    {
+        var list = urls.Select(u => u.Trim()).Where(u => !string.IsNullOrEmpty(u)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        foreach (var url in list)
+        {
+            if (!IsHttpUrl(url)) throw new ArgumentException($"不是有效的 http/https 地址：{url}");
+        }
+
+        var root = File.Exists(configPath)
+            ? JsonNode.Parse(File.ReadAllText(configPath)) as JsonObject ?? new JsonObject()
+            : new JsonObject();
+        var array = new JsonArray();
+        foreach (var url in list) array.Add(url);
+        root[nameof(AppConfig.ExtraAllowedUrls)] = array;
+
+        AtomicWrite(configPath, root.ToJsonString(WriteOptions));
     }
 
     public static void SaveLauncherStartUrl(string launcherPath, string startUrl)
@@ -50,7 +75,7 @@ public static class ConfigFile
 
         var root = JsonNode.Parse(File.ReadAllText(launcherPath)) as JsonObject ?? new JsonObject();
         root[nameof(AppConfig.StartUrl)] = startUrl;
-        AtomicWrite(launcherPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        AtomicWrite(launcherPath, root.ToJsonString(WriteOptions));
     }
 
     private static bool IsHttpUrl(string value)
