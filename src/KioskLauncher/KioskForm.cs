@@ -15,7 +15,6 @@ public sealed class KioskForm : Form
     {
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Maximized;
-        TopMost = true;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
         Bounds = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
@@ -32,13 +31,6 @@ public sealed class KioskForm : Form
                 cmd == SC_MINIMIZE || cmd == SC_CLOSE) return;
         }
         base.WndProc(ref m);
-    }
-
-    protected override void OnLoad(EventArgs e)
-    {
-        base.OnLoad(e);
-        BringToFront();
-        Activate();
     }
 
     protected override void OnClosed(EventArgs e)

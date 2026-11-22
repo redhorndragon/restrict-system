@@ -11,8 +11,9 @@ public class EdgeControllerTests
 
         Assert.Contains("--kiosk", args);
         Assert.Contains("https://example.com/portal", args);
-        Assert.Contains("--edge-kiosk-type=fullscreen", args);
+        Assert.Contains("--edge-kiosk-type=public-browsing", args);
         Assert.Contains("--no-first-run", args);
+        Assert.Contains("--kiosk-idle-timeout-minutes=0", args);
     }
 
     [Fact]

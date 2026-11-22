@@ -65,6 +65,8 @@ public sealed class PolicyApplier
         edge.SetValue("IncognitoModeAvailability", 2, RegistryValueKind.DWord);
         edge.SetValue("DeveloperToolsAvailability", 2, RegistryValueKind.DWord);
         edge.SetValue("DownloadRestrictions", 3, RegistryValueKind.DWord);
+        edge.SetValue("ShowHomeButton", 1, RegistryValueKind.DWord);
+        edge.SetValue("AddressBarIsReadOnly", 1, RegistryValueKind.DWord);
         if (!string.IsNullOrWhiteSpace(config.StartUrl))
         {
             edge.SetValue("HomepageLocation", config.StartUrl, RegistryValueKind.String);
