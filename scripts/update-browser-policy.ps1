@@ -26,6 +26,6 @@ if (Test-Path $launcherJson) {
 Write-Host '== Granting browser policy read access =='
 $accountName = if ($User -like '*\*' -or $User -like '*@*') { $User } else { "$env:COMPUTERNAME\$User" }
 $sid = ([System.Security.Principal.NTAccount]$accountName).Translate([System.Security.Principal.SecurityIdentifier]).Value
-& icacls $dataDir /grant "*$sid:(OI)(CI)RX" | Out-Null
+& icacls $dataDir /grant "*${sid}:(OI)(CI)RX" | Out-Null
 
 Write-Host 'Done. Please also run update-service.ps1 and update-launcher.ps1.'
