@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiosk 允许访问列表</title>
+  <style>
+    :root {
+      --primary: #2563EB;
+      --primary-dark: #1D4ED8;
+      --bg: #F5F7FA;
+      --surface: #FFFFFF;
+      --text: #1F2937;
+      --muted: #6B7280;
+      --success: #16A34A;
+      --border: #E5E7EB;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "思源黑体", "Source Han Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #EEF2FF 0%, #F5F7FA 45%, #F0FDF4 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 48px 20px;
+      line-height: 1.6;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(37, 99, 235, .08);
+      padding: 36px 40px;
+      margin-bottom: 24px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+    .logo {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff; font-size: 22px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    h1 { font-size: 26px; font-weight: 600; letter-spacing: -.5px; }
+    .subtitle { color: var(--muted); font-size: 13px; margin: 10px 0 0 58px; }
+    h2 { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+    .note {
+      background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px;
+      padding: 14px 16px; font-size: 13px; color: #166534; margin-bottom: 24px;
+    }
+    .note code { background: #DCFCE7; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+    ol { margin-left: 20px; font-size: 13px; color: var(--muted); }
+    ol li { margin-bottom: 6px; }
+    ul { list-style: none; }
+    ul li {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 10px; transition: border-color .2s, box-shadow .2s;
+    }
+    ul li:hover { border-color: var(--primary); box-shadow: 0 2px 12px rgba(37,99,235,.1); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex: none; }
+    a { color: var(--primary); text-decoration: none; font-size: 14px; word-break: break-all; }
+    a:hover { color: var(--primary-dark); text-decoration: underline; }
+    .count { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+    .empty { color: var(--muted); font-size: 13px; }
+    footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card">
+      <div class="brand">
+        <div class="logo">K</div>
+        <h1>Kiosk 允许访问列表</h1>
+      </div>
+      <p class="subtitle">由 KioskGuard 服务抓取并下发到 Edge 白名单策略</p>
+    </section>
+
+    <section class="card">
+      <h2>维护说明</h2>
+      <div class="note">
+        本页是 KioskGuard 服务的白名单来源。编辑本文件 <code>rules/allowlist.html</code>
+        中下方 <code>kiosk-allowlist</code> 脚本块内的 URL 数组即可增删允许访问的链接。
+        保存并推送到 GitHub 后，服务会在下一个刷新周期（默认 10 分钟）自动更新；
+        也可在管理界面点击「保存并立即生效」触发即时刷新。
+      </div>
+      <ol>
+        <li>只保留需要放行的 <code>http/https</code> 绝对地址。</li>
+        <li>数组支持字符串 <code>"https://…"</code> 或对象 <code>{"url":"https://…"}</code> 两种写法。</li>
+        <li>抓取失败或列表为空时，服务保留上一次有效列表（fail-closed），不会放行全部网址。</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>当前允许的链接</h2>
+      <p class="count" id="count"></p>
+      <ul id="list"></ul>
+    </section>
+
+    <footer>RestrictSystem · KioskGuard 白名单源页面</footer>
+  </div>
+
+  <!--
+    白名单数据源（服务实际读取的内容）：
+    解析器优先读取 type="application/json" 且 id="kiosk-allowlist" 的脚本块。
+    请直接编辑下面的 URL 数组，页面可见列表会随之更新。
+  -->
+  <script type="application/json" id="kiosk-allowlist">
+  [
+    "https://example.com/",
+    "https://learn.microsoft.com/"
+  ]
+  </script>
+
+  <script>
+    (function () {
+      var data = [];
+      try {
+        data = JSON.parse(document.getElementById('kiosk-allowlist').textContent);
+      } catch (e) { data = []; }
+      var urls = data.map(function (item) {
+        return typeof item === 'string' ? item : (item && item.url) || '';
+      }).filter(Boolean);
+
+      document.getElementById('count').textContent = '共 ' + urls.length + ' 条';
+      var list = document.getElementById('list');
+      if (!urls.length) {
+        list.innerHTML = '<li class="empty">暂无允许的链接，请在 kiosk-allowlist 脚本块中添加。</li>';
+        return;
+      }
+      urls.forEach(function (url) {
+        var li = document.createElement('li');
+        var dot = document.createElement('span');
+        dot.className = 'dot';
+        var a = document.createElement('a');
+        a.href = url;
+        a.textContent = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        li.appendChild(dot);
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+    })();
+  </script>
+</body>
+</html>

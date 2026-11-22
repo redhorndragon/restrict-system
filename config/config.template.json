@@ -1,0 +1,28 @@
+{
+  "GitHubPagesUrl": "https://redhorndragon.github.io/restrict-system/rules/allowlist.html",
+  "TargetUserSid": "S-1-5-21-...",
+  "TargetUserName": "KioskUser",
+  "StartUrl": "https://redhorndragon.github.io/restrict-system/rules/allowlist.html",
+  "RefreshIntervalMinutes": 10,
+  "ProcessScanIntervalMs": 500,
+  "CachePath": "C:\\ProgramData\\KioskGuard\\allowlist.json",
+  "SharedConfigPath": "C:\\ProgramData\\KioskGuard\\config.json",
+  "ManifestScriptId": "kiosk-allowlist",
+  "AllowlistContainerId": "kiosk-allowlist",
+  "AllowedProcessNames": [
+    "msedge.exe",
+    "msedgewebview2.exe",
+    "KioskLauncher.exe",
+    "conhost.exe",
+    "dllhost.exe",
+    "RuntimeBroker.exe",
+    "ctfmon.exe",
+    "sihost.exe",
+    "TextInputHost.exe",
+    "ApplicationFrameHost.exe",
+    "SearchHost.exe",
+    "SearchApp.exe",
+    "audiodg.exe",
+    "fontdrvhost.exe"
+  ]
+}
